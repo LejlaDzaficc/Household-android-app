@@ -28,10 +28,10 @@ class JoinToHousehold: AppCompatActivity(), ServiceCallbacks {
             mBoundService?.setServiceCallbacks(this@JoinToHousehold)
 
             val preferences = getSharedPreferences("database", Context.MODE_APPEND)
-            val status = preferences.getString("status", null)
-            if(status != null && isBound) {
+            val loggedInStatus = preferences.getBoolean("loggedIn", false)
+            if(loggedInStatus == true && isBound) {
                 val groupID = preferences.getString("currentGroupID", "This value does not exist")
-                sendJoinToHouseHoldMessage(groupID.toString())
+                sendJoinToHouseHoldMessage(groupID)
                 sleep(1000) // used for nicer transition
             }
             else {
@@ -70,7 +70,7 @@ class JoinToHousehold: AppCompatActivity(), ServiceCallbacks {
         doUnbindService()
     }
 
-    fun sendJoinToHouseHoldMessage(groupID: String){
+    fun sendJoinToHouseHoldMessage(groupID: String?){
         val jsonObj = JSONObject()
         jsonObj.put("command", "joinToHousehold");
         jsonObj.put("groupID", groupID);
@@ -96,28 +96,30 @@ class JoinToHousehold: AppCompatActivity(), ServiceCallbacks {
         usernameJoinToHousehold.setBackgroundResource(0)
     }
 
-    fun saveStatusInPreferences(status: String){
-        val preferences = getSharedPreferences("database", Context.MODE_PRIVATE)
-        val myEdit = preferences.edit()
-        myEdit.putString("status", status)
-        myEdit.commit()
-    }
-
-    fun saveUsernameAndGroupIDInPreferences(user: String, groupID: String){
+    fun saveMemberInformationInPreferences(user: String, groupID: String){
         val preferences = getSharedPreferences("database", Context.MODE_PRIVATE)
         val myEdit = preferences.edit()
         myEdit.putString("currentUser", user)
         myEdit.putString("currentGroupID", groupID)
+        myEdit.putBoolean("loggedIn", true)
         myEdit.commit()
     }
 
+    @SuppressLint("WrongConstant")
     override fun receiveMessage(msg: String?) {
         val jsonObj = JSONObject(msg)
         val command: String = jsonObj.getString("command")
         if(command == "joinToHousehold"){
             val responseStatus = jsonObj.getString("status")
             if(responseStatus == "accepted"){
-                saveStatusInPreferences(responseStatus)
+                val preferences = getSharedPreferences("database", Context.MODE_APPEND)
+                val loggedInStatus = preferences.getBoolean("loggedIn", false)
+                if(loggedInStatus != true){
+                    val currentUser = usernameJoinToHousehold.text.toString()
+                    val currentGroupID = groupIDJoinToHousehold.text.toString()
+                    saveMemberInformationInPreferences(currentUser, currentGroupID)
+                }
+
                 runOnUiThread {
                     createToastMessage("Successfully joined!")
                 }
@@ -162,7 +164,6 @@ class JoinToHousehold: AppCompatActivity(), ServiceCallbacks {
                 } else {
                     sendJoinToHouseHoldMessage(currentGroupID)
                     clearInputErrors()
-                    saveUsernameAndGroupIDInPreferences(currentUser, currentGroupID)
                 }
             }
         }

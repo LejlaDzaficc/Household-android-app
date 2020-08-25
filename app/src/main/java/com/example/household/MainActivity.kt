@@ -41,15 +41,14 @@ class MainActivity : AppCompatActivity(){
         doBindService()
         setContentView(R.layout.loading)
         val preferences = getSharedPreferences("database", Context.MODE_APPEND)
-        val status = preferences.getString("status", null)
-        if(status != null) {
+        val loggedInStatus = preferences.getBoolean("loggedIn", false)
+        if(loggedInStatus == true) {
             val intent = Intent(this, JoinToHousehold::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
             startActivity(intent)
         }
         else
             setContentView(R.layout.activity_main)
-
         setupListeners()
     }
 
@@ -65,7 +64,8 @@ class MainActivity : AppCompatActivity(){
 
     fun setupListeners(){
         createNewHousehold.setOnClickListener {
-            val intent = Intent(this, Home::class.java)
+            val intent = Intent(this, CreateNewHousehold::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
             startActivity(intent)
         }
 
